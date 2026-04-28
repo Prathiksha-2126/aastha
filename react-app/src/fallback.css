@@ -1,0 +1,65 @@
+/* Fallback CSS - No Tailwind Required */
+/* Aastha Color Theme */
+
+:root {
+  --primary: #173124;
+  --primary-light: #2d4739;
+  --primary-fixed: #ccead6;
+  --secondary: #99460a;
+  --secondary-light: #ffdbca;
+  --surface: #fbf9f6;
+  --surface-dark: #f0edea;
+  --on-surface: #1b1c1a;
+  --outline: #727973;
+  --error: #ba1a1a;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Quicksand', sans-serif;
+  background: var(--surface);
+  color: var(--on-surface);
+}
+
+.font-serif {
+  font-family: 'DM Serif Display', serif;
+}
+
+/* Layout */
+.flex { display: flex; }
+.grid { display: grid; }
+.hidden { display: none; }
+.block { display: block; }
+
+/* Colors */
+.bg-primary { background: var(--primary); }
+.bg-secondary { background: var(--secondary); }
+.bg-white { background: white; }
+.text-white { color: white; }
+.text-primary { color: var(--primary); }
+.text-secondary { color: var(--secondary); }
+
+/* Spacing */
+.p-3 { padding: 12px; }
+.p-5 { padding: 20px; }
+.p-6 { padding: 24px; }
+.p-7 { padding: 28px; }
+
+/* Borders */
+.rounded-xl { border-radius: 12px; }
+.rounded-2xl { border-radius: 16px; }
+
+/* Utility */
+.gap-3 { gap: 12px; }
+.gap-5 { gap: 20px; }
+
+/* Responsive */
+@media (min-width: 768px) {
+  .md\:block { display: block; }
+  .md\:flex { display: flex; }
+}

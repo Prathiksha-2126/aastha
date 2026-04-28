@@ -1,0 +1,9 @@
+# Flask + Gemini AI (No Pydantic, works with Python 3.13)
+
+flask==3.0.0
+flask-cors==4.0.0
+
+# Google Gemini AI
+google-generativeai==0.3.2
+
+python-dotenv==1.0.0

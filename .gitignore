@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+.expo/
+dist/
+build/
+venv/
+__pycache__/
+*.pyc
+
+# Env
+.env
+.env.local
+*.json
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.log
+.DS_Store

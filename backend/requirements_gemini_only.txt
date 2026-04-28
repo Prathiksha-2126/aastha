@@ -1,0 +1,14 @@
+# Aastha Backend - Gemini AI Only (No Firebase, No Cloud)
+# Just Google Gemini AI + FastAPI
+
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+pydantic==2.5.0
+
+# Google Gemini AI (Only dependency needed!)
+google-generativeai==0.3.2
+
+# Environment variables
+python-dotenv==1.0.0

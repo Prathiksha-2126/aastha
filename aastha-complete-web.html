@@ -1,0 +1,1306 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Aastha - AI Coordination for NGOs</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,600&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#173124",
+        "primary-container": "#2d4739",
+        "on-primary": "#ffffff",
+        "on-primary-container": "#98b5a3",
+        "primary-fixed": "#ccead6",
+        "primary-fixed-dim": "#b0cdbb",
+        "secondary": "#99460a",
+        "secondary-container": "#fc9354",
+        "on-secondary": "#ffffff",
+        "secondary-fixed": "#ffdbca",
+        "secondary-fixed-dim": "#ffb68e",
+        "on-secondary-fixed-variant": "#773300",
+        "surface": "#fbf9f6",
+        "surface-container-lowest": "#ffffff",
+        "surface-container-low": "#f5f3f0",
+        "surface-container": "#f0edea",
+        "surface-container-high": "#eae8e5",
+        "surface-container-highest": "#e4e2df",
+        "on-surface": "#1b1c1a",
+        "on-surface-variant": "#424844",
+        "outline": "#727973",
+        "outline-variant": "#c2c8c2",
+        "error": "#ba1a1a",
+        "error-container": "#ffdad6",
+        "background": "#fbf9f6",
+        "on-background": "#1b1c1a",
+        "tertiary": "#2c2b28",
+        "tertiary-container": "#42413e",
+        "on-tertiary": "#ffffff",
+        "on-tertiary-container": "#b0ada9"
+      },
+      fontFamily: {
+        "serif": ["Newsreader", "Georgia", "serif"],
+        "sans": ["Manrope", "system-ui", "sans-serif"]
+      }
+    }
+  }
+}
+</script>
+<style>
+/* ============ BASE ============ */
+* { box-sizing: border-box; }
+body { font-family: 'Manrope', sans-serif; background: #fbf9f6; color: #1b1c1a; }
+h1, h2, h3, h4 { font-family: 'Newsreader', Georgia, serif; }
+
+/* ============ ICONS ============ */
+.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+.fill-icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
+/* ============ TRANSITIONS ============ */
+.screen { display: none; }
+.screen.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+/* ============ SIDEBAR NAV ============ */
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; font-size: 14px; font-weight: 600; color: #424844; }
+.nav-item:hover { background: #f5f3f0; transform: translateX(2px); }
+.nav-item.active { background: #f0edea; color: #173124; }
+.nav-item.active .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
+/* ============ WAVEFORM ============ */
+.waveform-bar { width: 4px; border-radius: 4px; animation: wave-bounce 1.2s ease-in-out infinite alternate; }
+@keyframes wave-bounce { 0% { height: 6px; opacity: 0.4; } 100% { height: 32px; opacity: 1; } }
+.waveform-bar:nth-child(1)  { animation-delay: 0.0s; background: #99460a; }
+.waveform-bar:nth-child(2)  { animation-delay: 0.15s; background: #2d4739; }
+.waveform-bar:nth-child(3)  { animation-delay: 0.3s; background: #99460a; }
+.waveform-bar:nth-child(4)  { animation-delay: 0.1s; background: #2d4739; }
+.waveform-bar:nth-child(5)  { animation-delay: 0.45s; background: #99460a; }
+.waveform-bar:nth-child(6)  { animation-delay: 0.25s; background: #2d4739; }
+.waveform-bar:nth-child(7)  { animation-delay: 0.5s; background: #99460a; }
+.waveform-bar:nth-child(8)  { animation-delay: 0.05s; background: #2d4739; }
+.waveform-bar:nth-child(9)  { animation-delay: 0.35s; background: #99460a; }
+.waveform-bar:nth-child(10) { animation-delay: 0.2s; background: #2d4739; }
+.waveform-bar:nth-child(11) { animation-delay: 0.4s; background: #99460a; }
+.waveform-bar:nth-child(12) { animation-delay: 0.55s; background: #2d4739; }
+.waveform-stopped .waveform-bar { animation: none; height: 6px; opacity: 0.3; }
+
+/* ============ MAP PINS ============ */
+.map-pin { position: absolute; transform: translate(-50%, -50%); cursor: pointer; }
+.map-pin .pin-dot { width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+.map-pin:hover .pin-dot { transform: scale(1.2); }
+.map-pin .pin-tooltip { position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); background: white; border-radius: 10px; padding: 10px 14px; width: 180px; box-shadow: 0 4px 20px rgba(23,49,36,0.15); border: 1px solid #e4e2df; opacity: 0; pointer-events: none; transition: opacity 0.2s; font-size: 12px; z-index: 10; }
+.map-pin:hover .pin-tooltip { opacity: 1; }
+.pin-neglect { animation: pulse-danger 2.5s ease-in-out infinite; }
+@keyframes pulse-danger { 0%, 100% { box-shadow: 0 0 0 0 rgba(153,70,10,0.4); } 50% { box-shadow: 0 0 0 12px rgba(153,70,10,0); } }
+
+/* ============ CARDS & EFFECTS ============ */
+.card { background: white; border-radius: 14px; border: 1px solid #e4e2df; box-shadow: 0 1px 4px rgba(23,49,36,0.04); transition: box-shadow 0.2s; }
+.card:hover { box-shadow: 0 4px 16px rgba(23,49,36,0.08); }
+.btn-primary { background: #173124; color: white; border: none; border-radius: 10px; padding: 10px 20px; font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em; }
+.btn-primary:hover { background: #2d4739; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(23,49,36,0.2); }
+.btn-primary:active { transform: translateY(0); }
+.btn-secondary { background: #99460a; color: white; border: none; border-radius: 10px; padding: 10px 20px; font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+.btn-secondary:hover { background: #7a3708; }
+.btn-outline { background: transparent; color: #173124; border: 1.5px solid #2d4739; border-radius: 10px; padding: 9px 20px; font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+.btn-outline:hover { background: #f0edea; }
+.tag { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.tag-green { background: #ccead6; color: #173124; }
+.tag-orange { background: #ffdbca; color: #773300; }
+.tag-neutral { background: #eae8e5; color: #424844; }
+.tag-red { background: #ffdad6; color: #ba1a1a; }
+
+/* ============ IMPACT RING ============ */
+.impact-ring-svg circle.track { stroke: rgba(255,255,255,0.15); fill: none; }
+.impact-ring-svg circle.progress { stroke: white; fill: none; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+
+/* ============ BAR CHART ============ */
+.bar-before { background: #ba1a1a; border-radius: 4px 4px 0 0; transition: height 0.8s ease; }
+.bar-after { background: #b0cdbb; border-radius: 4px 4px 0 0; transition: height 0.8s ease; }
+.bar-group { display: flex; align-items: flex-end; gap: 4px; height: 160px; }
+
+/* ============ AI PROCESSING ============ */
+.ai-stage { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; background: #f5f3f0; opacity: 0; transform: translateY(6px); transition: all 0.4s ease; }
+.ai-stage.visible { opacity: 1; transform: translateY(0); }
+.ai-stage .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ============ MOBILE NAV ============ */
+.mobile-nav { display: none; }
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .mobile-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-top: 1px solid #e4e2df; box-shadow: 0 -4px 20px rgba(23,49,36,0.08); }
+  .main-content { padding-bottom: 72px; }
+}
+@media (max-width: 768px) {
+  .screen-inner { padding: 16px !important; }
+  .hide-mobile { display: none !important; }
+}
+
+/* ============ SCROLL ============ */
+.overflow-y-auto::-webkit-scrollbar { width: 4px; }
+.overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
+.overflow-y-auto::-webkit-scrollbar-thumb { background: #c2c8c2; border-radius: 4px; }
+
+/* ============ TOGGLE ============ */
+.toggle { width: 36px; height: 20px; border-radius: 999px; position: relative; cursor: pointer; transition: background 0.2s; }
+.toggle-knob { position: absolute; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: white; transition: left 0.2s; }
+.toggle.on { background: #2d4739; }
+.toggle.on .toggle-knob { left: 19px; }
+.toggle.off { background: #c2c8c2; }
+.toggle.off .toggle-knob { left: 3px; }
+
+/* ============ VOLUNTEER MATCH ============ */
+.vol-match-bar { height: 4px; border-radius: 4px; background: #e4e2df; overflow: hidden; }
+.vol-match-fill { height: 100%; border-radius: 4px; background: #2d4739; transition: width 0.6s ease; }
+
+/* ============ NOTIFICATION DOT ============ */
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: #99460a; position: absolute; top: 6px; right: 6px; }
+
+/* ============ LANDING ============ */
+.hero-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: #ccead6; color: #173124; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.feature-card { border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 12px; cursor: pointer; transition: all 0.3s; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(23,49,36,0.1); }
+.stat-number { font-family: 'Newsreader', serif; font-size: 48px; font-weight: 600; line-height: 1; }
+
+/* ============ EQUITY SHIELD ============ */
+.shield-bar { height: 8px; border-radius: 4px; margin-bottom: 8px; transition: width 1s ease; }
+
+/* ============ ANIMATIONS ============ */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.4s ease forwards; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+@keyframes countUp { from { opacity: 0; } to { opacity: 1; } }
+
+/* ============ BIAS BANNER ============ */
+.bias-banner { background: #ffdbca; color: #773300; padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+
+/* ============ RECORDING BUTTON ============ */
+.record-btn { width: 88px; height: 88px; border-radius: 50%; background: #99460a; color: white; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 20px rgba(153,70,10,0.3); }
+.record-btn:hover { transform: scale(1.06); box-shadow: 0 6px 28px rgba(153,70,10,0.4); }
+.record-btn.recording { background: #ba1a1a; animation: record-pulse 1.5s ease-in-out infinite; }
+@keyframes record-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(186,26,26,0.4); } 50% { box-shadow: 0 0 0 16px rgba(186,26,26,0); } }
+
+/* ============ TRANSCRIPT BOX ============ */
+.transcript-box { background: #f5f3f0; border-radius: 12px; padding: 16px; min-height: 80px; font-size: 14px; line-height: 1.6; color: #424844; border: 1.5px solid #e4e2df; font-style: italic; }
+.cursor-blink::after { content: '|'; animation: blink 0.8s step-end infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ============ DASHBOARD STATS ============ */
+.stat-card { background: white; border-radius: 14px; padding: 20px 24px; border: 1px solid #e4e2df; }
+.trend-up { color: #173124; font-size: 12px; font-weight: 700; }
+.trend-down { color: #ba1a1a; font-size: 12px; font-weight: 700; }
+
+/* ============ HEATMAP OVERLAY ============ */
+.heatmap-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.4; }
+.heatmap-zone { position: absolute; border-radius: 50%; filter: blur(20px); }
+.heatmap-high { background: radial-gradient(circle, rgba(153,70,10,0.6) 0%, transparent 70%); }
+.heatmap-medium { background: radial-gradient(circle, rgba(153,70,10,0.3) 0%, transparent 70%); }
+.heatmap-low { background: radial-gradient(circle, rgba(45,71,57,0.3) 0%, transparent 70%); }
+</style>
+</head>
+<body style="display:flex; flex-direction:row; min-height:100vh; background:#fbf9f6;">
+
+<!-- ============================== SIDEBAR ============================== -->
+<aside class="sidebar" style="width:248px; flex-shrink:0; height:100vh; position:sticky; top:0; display:flex; flex-direction:column; background:white; border-right:1px solid #e4e2df; padding:16px; overflow-y:auto;">
+  <!-- Brand -->
+  <div style="display:flex; align-items:center; gap:12px; padding:8px 4px; margin-bottom:24px;">
+    <div style="width:40px; height:40px; background:#2d4739; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+      <span class="material-symbols-outlined fill-icon" style="color:white; font-size:22px;">eco</span>
+    </div>
+    <div>
+      <div style="font-family:'Newsreader',serif; font-size:22px; font-weight:600; color:#173124; line-height:1;">Aastha</div>
+      <div style="font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#727973;">NGO Coordination</div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav style="flex:1; display:flex; flex-direction:column; gap:4px;">
+    <div class="nav-item active" onclick="showScreen('dashboard')" id="nav-dashboard">
+      <span class="material-symbols-outlined" style="font-size:20px;">dashboard</span>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="showScreen('echo')" id="nav-echo">
+      <span class="material-symbols-outlined" style="font-size:20px;">mic</span>
+      <span>Echo Portal</span>
+    </div>
+    <div class="nav-item" onclick="showScreen('compass')" id="nav-compass">
+      <span class="material-symbols-outlined" style="font-size:20px;">explore</span>
+      <span>Compass Map</span>
+    </div>
+    <div class="nav-item" onclick="showScreen('impact')" id="nav-impact">
+      <span class="material-symbols-outlined" style="font-size:20px;">monitoring</span>
+      <span>Impact Hearth</span>
+    </div>
+    <div class="nav-item" onclick="showScreen('equity')" id="nav-equity">
+      <span class="material-symbols-outlined" style="font-size:20px;">shield</span>
+      <span>Equity Shield</span>
+    </div>
+    <div style="height:1px; background:#e4e2df; margin:8px 0;"></div>
+    <div class="nav-item" onclick="showScreen('reports')" id="nav-reports">
+      <span class="material-symbols-outlined" style="font-size:20px;">description</span>
+      <span>Field Reports</span>
+    </div>
+  </nav>
+
+  <!-- Bottom -->
+  <div style="margin-top:16px; padding-top:16px; border-top:1px solid #e4e2df; display:flex; flex-direction:column; gap:4px;">
+    <button class="btn-primary" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px;" onclick="showScreen('echo')">
+      <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+      New Report
+    </button>
+    <div style="height:8px;"></div>
+    <div class="nav-item" style="font-size:13px;">
+      <span class="material-symbols-outlined" style="font-size:18px;">settings</span>
+      <span>Settings</span>
+    </div>
+    <div class="nav-item" style="font-size:13px;">
+      <span class="material-symbols-outlined" style="font-size:18px;">help</span>
+      <span>Support</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ============================== MAIN ============================== -->
+<div style="flex:1; display:flex; flex-direction:column; min-width:0; height:100vh; overflow:hidden;" class="main-content">
+  <!-- Top Bar -->
+  <header style="height:60px; background:#f7f3f0; border-bottom:1px solid #e4e2df; display:flex; align-items:center; justify-content:space-between; padding:0 28px; flex-shrink:0; position:sticky; top:0; z-index:50; box-shadow:0 1px 4px rgba(23,49,36,0.05);">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="font-family:'Newsreader',serif; font-size:20px; font-weight:600; color:#173124;" id="header-title">Dashboard</span>
+      <span class="tag tag-green hide-mobile" id="header-badge" style="margin-left:8px;">Live</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div style="position:relative; hide-mobile">
+        <input style="background:white; border:1.5px solid #e4e2df; border-radius:999px; padding:6px 36px 6px 14px; font-size:13px; width:200px; outline:none; font-family:'Manrope',sans-serif;" placeholder="Search..." class="hide-mobile"/>
+        <span class="material-symbols-outlined" style="position:absolute; right:10px; top:7px; font-size:18px; color:#727973; pointer-events:none;" >search</span>
+      </div>
+      <button style="width:36px; height:36px; border-radius:50%; border:none; background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; position:relative;" onclick="showNotif()">
+        <span class="material-symbols-outlined" style="font-size:22px; color:#424844;">notifications</span>
+        <span class="notif-dot" id="notif-dot"></span>
+      </button>
+      <div style="width:36px; height:36px; border-radius:50%; background:#2d4739; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+        <span style="color:white; font-size:14px; font-weight:700; font-family:'Manrope',sans-serif;">P</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Screens Container -->
+  <div style="flex:1; overflow-y:auto;" id="screens-container">
+
+    <!-- ==================== DASHBOARD ==================== -->
+    <div class="screen active" id="screen-dashboard">
+      <div class="screen-inner" style="padding:28px; display:flex; flex-direction:column; gap:24px; max-width:1280px; width:100%; margin:0 auto;">
+        
+        <!-- Welcome -->
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+          <div>
+            <div style="font-family:'Newsreader',serif; font-size:32px; font-weight:600; color:#173124; line-height:1.2;">Good morning, Prathiksha</div>
+            <div style="color:#727973; font-size:14px; margin-top:4px;">3 new need signals detected in Verna cluster Ã¢â‚¬â€ <span style="color:#99460a; font-weight:700; cursor:pointer;" onclick="showScreen('compass')">View map Ã¢â€ â€™</span></div>
+          </div>
+          <div class="hero-badge">
+            <span class="material-symbols-outlined fill-icon" style="font-size:14px;">verified</span>
+            72% Verified Impact Rate
+          </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px;">
+          <div class="stat-card">
+            <div style="font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#727973; margin-bottom:8px;">Active Volunteers</div>
+            <div class="stat-number" style="color:#173124; font-size:36px;">248</div>
+            <div class="trend-up" style="margin-top:4px;">Ã¢â€ â€˜ 14 this week</div>
+          </div>
+          <div class="stat-card">
+            <div style="font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#727973; margin-bottom:8px;">Open Need Signals</div>
+            <div class="stat-number" style="color:#99460a; font-size:36px;">37</div>
+            <div class="trend-down" style="margin-top:4px;">Ã¢â€ â€˜ 3 since yesterday</div>
+          </div>
+          <div class="stat-card">
+            <div style="font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#727973; margin-bottom:8px;">Interventions</div>
+            <div class="stat-number" style="color:#173124; font-size:36px;">1,204</div>
+            <div class="trend-up" style="margin-top:4px;">Ã¢â€ â€˜ 8.4% vs last month</div>
+          </div>
+          <div class="stat-card">
+            <div style="font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#727973; margin-bottom:8px;">Impact Verified</div>
+            <div class="stat-number" style="color:#2d4739; font-size:36px;">72%</div>
+            <div class="trend-up" style="margin-top:4px;">Ã¢â€ â€˜ 5pts vs Q2</div>
+          </div>
+        </div>
+
+        <!-- Feature Cards -->
+        <div>
+          <div style="font-family:'Newsreader',serif; font-size:22px; font-weight:500; margin-bottom:16px; color:#173124;">Core Features</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px;">
+            <div class="feature-card" style="background:#2d4739; color:white;" onclick="showScreen('echo')">
+              <span class="material-symbols-outlined fill-icon" style="font-size:32px; color:#b0cdbb;">mic</span>
+              <div style="font-family:'Newsreader',serif; font-size:22px; font-weight:600;">Echo Portal</div>
+              <div style="font-size:13px; opacity:0.8; line-height:1.5;">Voice-first reporting in Hindi, Marathi & Konkani. Zero onboarding friction for ASHA workers.</div>
+              <div style="font-size:12px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:#b0cdbb; margin-top:4px;">Open Ã¢â€ â€™</div>
+            </div>
+            <div class="feature-card" style="background:#fbf9f6; border:1.5px solid #e4e2df;" onclick="showScreen('compass')">
+              <span class="material-symbols-outlined fill-icon" style="font-size:32px; color:#2d4739;">explore</span>
+              <div style="font-family:'Newsreader',serif; font-size:22px; font-weight:600; color:#173124;">Compass Map</div>
+              <div style="font-size:13px; color:#424844; line-height:1.5;">Real-time geospatial heatmap. See neglected zones and deploy volunteers instantly.</div>
+              <div style="font-size:12px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:#2d4739; margin-top:4px;">View map Ã¢â€ â€™</div>
+            </div>
+            <div class="feature-card" style="background:#ffdbca; border:1.5px solid #ffb68e;" onclick="showScreen('impact')">
+              <span class="material-symbols-outlined fill-icon" style="font-size:32px; color:#99460a;">local_fire_department</span>
+              <div style="font-family:'Newsreader',serif; font-size:22px; font-weight:600; color:#173124;">Impact Hearth</div>
+              <div style="font-size:13px; color:#6e2f00; line-height:1.5;">Causal attribution dashboard. Prove that interventions actually reduced community need.</div>
+              <div style="font-size:12px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:#99460a; margin-top:4px;">See impact Ã¢â€ â€™</div>
+            </div>
+            <div class="feature-card" style="background:#ccead6; border:1.5px solid #b0cdbb;" onclick="showScreen('equity')">
+              <span class="material-symbols-outlined fill-icon" style="font-size:32px; color:#173124;">shield</span>
+              <div style="font-family:'Newsreader',serif; font-size:22px; font-weight:600; color:#173124;">Equity Shield</div>
+              <div style="font-size:13px; color:#324c3e; line-height:1.5;">SDG 10 fairness engine. Detect geographic and gender bias in volunteer allocation.</div>
+              <div style="font-size:12px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:#173124; margin-top:4px;">Review audit Ã¢â€ â€™</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div style="display:grid; grid-template-columns:1fr 300px; gap:20px;" class="hide-mobile">
+          <div class="card" style="padding:24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <div style="font-family:'Newsreader',serif; font-size:18px; font-weight:500; color:#173124;">Recent Field Reports</div>
+              <span class="tag tag-neutral" style="cursor:pointer;" onclick="showScreen('reports')">See all</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div style="display:flex; align-items:center; gap:12px; padding:12px; background:#f5f3f0; border-radius:10px;">
+                <div style="width:36px; height:36px; border-radius:50%; background:#2d4739; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <span class="material-symbols-outlined fill-icon" style="color:white; font-size:18px;">mic</span>
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:14px; font-weight:600; color:#1b1c1a;">Ã Â¤â€“Ã Â¤Â¾Ã Â¤Â¦Ã Â¥ÂÃ Â¤Â¯Ã Â¤Â¾Ã Â¤Â¨Ã Â¥ÂÃ Â¤Â¨ Ã Â¤Â¸Ã Â¤â€šÃ Â¤â€¢Ã Â¤Å¸ Ã¢â‚¬â€ Ward 7, Panjim</div>
+                  <div style="font-size:12px; color:#727973;">2 min ago Ã‚Â· Voice Report Ã‚Â· Gemini extracted: Food Shortage, 45 families</div>
+                </div>
+                <span class="tag tag-orange">Urgent</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px; padding:12px; background:#f5f3f0; border-radius:10px;">
+                <div style="width:36px; height:36px; border-radius:50%; background:#ccead6; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <span class="material-symbols-outlined fill-icon" style="color:#173124; font-size:18px;">check_circle</span>
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:14px; font-weight:600; color:#1b1c1a;">Medical Kit Delivery Ã¢â‚¬â€ Ward 12, Margao</div>
+                  <div style="font-size:12px; color:#727973;">18 min ago Ã‚Â· Need level reduced from HIGH Ã¢â€ â€™ LOW after deployment</div>
+                </div>
+                <span class="tag tag-green">Resolved</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px; padding:12px; background:#f5f3f0; border-radius:10px;">
+                <div style="width:36px; height:36px; border-radius:50%; background:#ffdbca; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <span class="material-symbols-outlined fill-icon" style="color:#99460a; font-size:18px;">warning</span>
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:14px; font-weight:600; color:#1b1c1a;">Water Access Ã¢â‚¬â€ Verna Industrial Zone</div>
+                  <div style="font-size:12px; color:#727973;">1h ago Ã‚Â· Neglect Index: HIGH Ã‚Â· No volunteer assigned for 36h</div>
+                </div>
+                <span class="tag tag-orange">Neglected</span>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="padding:24px; display:flex; flex-direction:column; gap:16px;">
+            <div style="font-family:'Newsreader',serif; font-size:18px; font-weight:500; color:#173124;">Top Volunteers</div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:50%; background:#e4e2df; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#173124;">RS</div>
+                <div style="flex:1;">
+                  <div style="font-size:14px; font-weight:600;">Rahul Sawant</div>
+                  <div class="vol-match-bar"><div class="vol-match-fill" style="width:94%;"></div></div>
+                </div>
+                <div style="font-size:13px; font-weight:700; color:#173124;">94%</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:50%; background:#ccead6; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#173124;">PD</div>
+                <div style="flex:1;">
+                  <div style="font-size:14px; font-weight:600;">Priya Desai</div>
+                  <div class="vol-match-bar"><div class="vol-match-fill" style="width:88%;"></div></div>
+                </div>
+                <div style="font-size:13px; font-weight:700; color:#173124;">88%</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:50%; background:#ffdbca; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#99460a;">AN</div>
+                <div style="flex:1;">
+                  <div style="font-size:14px; font-weight:600;">Anita Naik</div>
+                  <div class="vol-match-bar"><div class="vol-match-fill" style="width:81%;"></div></div>
+                </div>
+                <div style="font-size:13px; font-weight:700; color:#173124;">81%</div>
+              </div>
+            </div>
+            <button class="btn-outline" style="width:100%; margin-top:auto;" onclick="showScreen('compass')">View Compass Map</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ECHO PORTAL ==================== -->
+    <div class="screen" id="screen-echo">
+      <div class="screen-inner" style="padding:28px; display:flex; flex-direction:column; gap:24px; max-width:1280px; width:100%; margin:0 auto;">
+        
+        <div>
+          <div style="font-family:'Newsreader',serif; font-size:28px; font-weight:600; color:#173124;">Echo Portal</div>
+          <div style="color:#727973; font-size:14px; margin-top:4px;">Voice-first field reporting for ASHA workers Ã‚Â· WhatsApp-compatible Ã‚Â· Zero onboarding</div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 380px; gap:24px; align-items:start;">
+          
+          <!-- Left: Voice Recording -->
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <!-- Voice Card -->
+            <div class="card" style="padding:32px; display:flex; flex-direction:column; align-items:center; gap:20px; text-align:center; position:relative; overflow:hidden;">
+              <div style="position:absolute; inset:0; background:linear-gradient(135deg, rgba(45,71,57,0.03) 0%, transparent 60%); pointer-events:none;"></div>
+              
+              <div style="display:flex; gap:8px; margin-bottom:4px;">
+                <span class="tag tag-green">Ã°Å¸â€¡Â®Ã°Å¸â€¡Â³ Hindi</span>
+                <span class="tag tag-neutral">Ã Â¤Â®Ã Â¤Â°Ã Â¤Â¾Ã Â¤Â Ã Â¥â‚¬</span>
+                <span class="tag tag-neutral">Konkani</span>
+              </div>
+              
+              <div style="font-family:'Newsreader',serif; font-size:24px; font-weight:500; color:#173124;">Speak to Report</div>
+              <div style="font-size:14px; color:#424844; max-width:360px; line-height:1.6;">Tap the microphone and speak naturally in your language. Gemini AI extracts the need signal automatically.</div>
+              
+              <!-- Waveform -->
+              <div id="waveform-container" style="display:flex; align-items:flex-end; gap:3px; height:48px; padding:0 8px;" class="waveform-stopped">
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+              </div>
+              
+              <!-- Record Button -->
+              <button class="record-btn" id="record-btn" onclick="toggleRecording()">
+                <span class="material-symbols-outlined fill-icon" style="font-size:36px;" id="record-icon">mic</span>
+              </button>
+              
+              <div id="record-status" style="font-size:13px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:#424844;">Tap to Record</div>
+              
+              <!-- Language selector -->
+              <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+                <button onclick="setLang('hi')" id="lang-hi" class="btn-primary" style="padding:6px 14px; font-size:12px;">Hindi &#x1F1EE;&#x1F1F3;</button>
+                <button onclick="setLang('mr')" id="lang-mr" class="btn-outline" style="padding:6px 14px; font-size:12px;">Marathi</button>
+                <button onclick="setLang('kok')" id="lang-kok" class="btn-outline" style="padding:6px 14px; font-size:12px;">Konkani</button>
+                <button onclick="setLang('en')" id="lang-en" class="btn-outline" style="padding:6px 14px; font-size:12px;">English</button>
+              </div>
+                <button onclick="setLang('mr')" id="lang-mr" class="btn-outline" style="padding:6px 14px; font-size:12px;">Ã Â¤Â®Ã Â¤Â°Ã Â¤Â¾Ã Â¤Â Ã Â¥â‚¬</button>
+                <button onclick="setLang('kok')" id="lang-kok" class="btn-outline" style="padding:6px 14px; font-size:12px;">Konkani</button>
+                <button onclick="setLang('en')" id="lang-en" class="btn-outline" style="padding:6px 14px; font-size:12px;">English</button>
+              </div>
+            </div>
+
+            <!-- Transcript Card -->
+            <div class="card" style="padding:24px; display:flex; flex-direction:column; gap:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-family:'Newsreader',serif; font-size:18px; font-weight:500; color:#173124;">Live Transcription</div>
+                <span class="tag tag-neutral" id="transcript-lang-tag">Hindi Ã¢â€ â€™ EN</span>
+              </div>
+              <div class="transcript-box" id="transcript-box">
+                Tap the microphone above to begin recording your field report...
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button class="btn-primary" style="flex:1;" onclick="processReport()" id="process-btn" disabled>
+                  <span style="display:flex; align-items:center; gap:8px; justify-content:center;">
+                    <span class="material-symbols-outlined fill-icon" style="font-size:16px;">auto_awesome</span>
+                    Extract with Gemini AI
+                  </span>
+                </button>
+                <button class="btn-outline" onclick="clearRecording()">Clear</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: AI Processing + Result -->
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <!-- AI Stage -->
+            <div class="card" style="padding:20px;">
+              <div style="font-family:'Newsreader',serif; font-size:17px; font-weight:500; color:#173124; margin-bottom:14px;">AI Processing Pipeline</div>
+              <div style="display:flex; flex-direction:column; gap:8px;" id="ai-stages">
+                <div class="ai-stage" id="stage-1">
+                  <div class="dot" style="background:#727973;"></div>
+                  <div>
+                    <div style="font-size:13px; font-weight:700;">Speech-to-Text</div>
+                    <div style="font-size:11px; color:#727973;">Google Cloud STT Ã‚Â· Multilingual</div>
+                  </div>
+                  <span class="material-symbols-outlined" style="margin-left:auto; font-size:16px; color:#727973;" id="stage-1-icon">radio_button_unchecked</span>
+                </div>
+                <div class="ai-stage" id="stage-2">
+                  <div class="dot" style="background:#727973;"></div>
+                  <div>
+                    <div style="font-size:13px; font-weight:700;">Translation Layer</div>
+                    <div style="font-size:11px; color:#727973;">Cloud Translation API</div>
+                  </div>
+                  <span class="material-symbols-outlined" style="margin-left:auto; font-size:16px; color:#727973;" id="stage-2-icon">radio_button_unchecked</span>
+                </div>
+                <div class="ai-stage" id="stage-3">
+                  <div class="dot" style="background:#727973;"></div>
+                  <div>
+                    <div style="font-size:13px; font-weight:700;">Gemini 1.5 Flash</div>
+                    <div style="font-size:11px; color:#727973;">Need Signal Extraction Ã¢â€ â€™ JSON</div>
+                  </div>
+                  <span class="material-symbols-outlined" style="margin-left:auto; font-size:16px; color:#727973;" id="stage-3-icon">radio_button_unchecked</span>
+                </div>
+                <div class="ai-stage" id="stage-4">
+                  <div class="dot" style="background:#727973;"></div>
+                  <div>
+                    <div style="font-size:13px; font-weight:700;">Vertex AI Matching</div>
+                    <div style="font-size:11px; color:#727973;">Skill Ãƒâ€” Proximity Ãƒâ€” Urgency</div>
+                  </div>
+                  <span class="material-symbols-outlined" style="margin-left:auto; font-size:16px; color:#727973;" id="stage-4-icon">radio_button_unchecked</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Extracted Result -->
+            <div class="card" style="padding:20px; display:none;" id="result-card">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+                <span class="material-symbols-outlined fill-icon" style="color:#173124; font-size:20px;">auto_awesome</span>
+                <div style="font-family:'Newsreader',serif; font-size:17px; font-weight:500; color:#173124;">Gemini Extracted Signal</div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:8px;" id="result-content">
+              </div>
+              <div style="margin-top:14px; display:flex; gap:8px;">
+                <button class="btn-primary" style="flex:1;" onclick="deployFromEcho()">
+                  Deploy Volunteer
+                </button>
+                <button class="btn-outline" onclick="showScreen('compass')">
+                  View on Map
+                </button>
+              </div>
+            </div>
+
+            <!-- Latent Insight -->
+            <div class="card" style="padding:20px; background:#fff8f5; border-color:#ffb68e; display:none;" id="latent-card">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <span class="material-symbols-outlined fill-icon" style="color:#99460a; font-size:20px;">psychology</span>
+                <div style="font-size:14px; font-weight:700; color:#773300;">Latent Need Detected</div>
+              </div>
+              <div style="font-size:13px; color:#6e2f00; line-height:1.6;" id="latent-text"></div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div class="card" style="padding:16px; text-align:center;">
+                <div style="font-family:'Newsreader',serif; font-size:28px; font-weight:600; color:#173124;">12,482</div>
+                <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#727973; margin-top:4px;">Echo Transmissions</div>
+              </div>
+              <div class="card" style="padding:16px; text-align:center;">
+                <div style="font-family:'Newsreader',serif; font-size:28px; font-weight:600; color:#2d4739;">96%</div>
+                <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#727973; margin-top:4px;">STT Accuracy</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== COMPASS MAP ==================== -->
+    <div class="screen" id="screen-compass" style="flex-direction:row; overflow:hidden; height:calc(100vh - 60px);">
+      <!-- Bias Banner -->
+      <div style="position:absolute; top:60px; left:248px; right:0; z-index:50;" class="show-compass-banner">
+        <div class="bias-banner" id="bias-banner">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="material-symbols-outlined fill-icon" style="font-size:18px; color:#99460a;">warning</span>
+            <span>Equity Shield Alert: Rural wards receiving 40% fewer assignments than urban Ã¢â‚¬â€ review allocation</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <button onclick="showScreen('equity')" style="font-size:12px; font-weight:700; text-decoration:underline; background:none; border:none; cursor:pointer; color:#773300;">REVIEW EQUITY SHIELD</button>
+            <button onclick="dismissBanner()" style="background:none; border:none; cursor:pointer; padding:2px;">
+              <span class="material-symbols-outlined" style="font-size:18px; color:#773300;">close</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1; display:flex; overflow:hidden;">
+        <!-- Map -->
+        <div style="flex:1; position:relative; background:#d4c9b0;" id="map-wrapper">
+          <div id="leaflet-map" style="width:100%;height:100%;z-index:1;"></div>
+          <!-- SVG Map -->
+          <svg width="100%" height="100%" style="position:absolute; inset:0;" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+            <!-- Background -->
+            <defs>
+              <radialGradient id="urban-glow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style="stop-color:#d4c9b0;stop-opacity:1"/>
+                <stop offset="100%" style="stop-color:#bfb49a;stop-opacity:1"/>
+              </radialGradient>
+              <filter id="blur-sm">
+                <feGaussianBlur stdDeviation="3"/>
+              </filter>
+            </defs>
+            <rect width="800" height="600" fill="url(#urban-glow)"/>
+            <!-- Roads -->
+            <path d="M0,300 Q200,280 400,300 Q600,320 800,300" stroke="#c4b98a" stroke-width="6" fill="none" opacity="0.7"/>
+            <path d="M400,0 Q380,150 400,300 Q420,450 400,600" stroke="#c4b98a" stroke-width="6" fill="none" opacity="0.7"/>
+            <path d="M0,150 L800,200" stroke="#cec39e" stroke-width="3" fill="none" opacity="0.5"/>
+            <path d="M0,450 L800,420" stroke="#cec39e" stroke-width="3" fill="none" opacity="0.5"/>
+            <path d="M200,0 L180,600" stroke="#cec39e" stroke-width="3" fill="none" opacity="0.5"/>
+            <path d="M600,0 L620,600" stroke="#cec39e" stroke-width="3" fill="none" opacity="0.5"/>
+            <!-- Urban zones -->
+            <rect x="80" y="80" width="160" height="120" rx="8" fill="#bfb49a" opacity="0.6"/>
+            <rect x="300" y="60" width="200" height="160" rx="8" fill="#b5aa90" opacity="0.7"/>
+            <rect x="540" y="100" width="180" height="140" rx="8" fill="#bfb49a" opacity="0.6"/>
+            <rect x="80" y="350" width="140" height="130" rx="8" fill="#c4b98a" opacity="0.5"/>
+            <rect x="560" y="380" width="160" height="120" rx="8" fill="#bfb49a" opacity="0.5"/>
+            <!-- Green areas -->
+            <ellipse cx="700" cy="200" rx="80" ry="60" fill="#8fa888" opacity="0.4"/>
+            <ellipse cx="100" cy="500" rx="70" ry="50" fill="#8fa888" opacity="0.3"/>
+            <!-- Water -->
+            <path d="M0,520 Q100,500 200,520 Q300,540 400,520 Q500,500 600,520 Q700,540 800,520 L800,600 L0,600 Z" fill="#a8c4c8" opacity="0.5"/>
+            <!-- Grid overlay -->
+            <line x1="0" y1="200" x2="800" y2="200" stroke="#c4b98a" stroke-width="0.5" opacity="0.4"/>
+            <line x1="0" y1="400" x2="800" y2="400" stroke="#c4b98a" stroke-width="0.5" opacity="0.4"/>
+            <line x1="200" y1="0" x2="200" y2="600" stroke="#c4b98a" stroke-width="0.5" opacity="0.4"/>
+            <line x1="400" y1="0" x2="400" y2="600" stroke="#c4b98a" stroke-width="0.5" opacity="0.4"/>
+            <line x1="600" y1="0" x2="600" y2="600" stroke="#c4b98a" stroke-width="0.5" opacity="0.4"/>
+            <!-- Ward labels -->
+            <text x="160" y="145" text-anchor="middle" font-size="10" fill="#6e5f42" opacity="0.7" font-family="Manrope">Ward 3</text>
+            <text x="400" y="145" text-anchor="middle" font-size="10" fill="#6e5f42" opacity="0.7" font-family="Manrope">Ward 5 (Urban)</text>
+            <text x="630" y="175" text-anchor="middle" font-size="10" fill="#6e5f42" opacity="0.7" font-family="Manrope">Ward 8</text>
+            <text x="150" y="420" text-anchor="middle" font-size="10" fill="#6e5f42" opacity="0.7" font-family="Manrope">Ward 12</text>
+            <text x="640" y="445" text-anchor="middle" font-size="10" fill="#6e5f42" opacity="0.7" font-family="Manrope">Ward 15</text>
+          </svg>
+
+          <!-- Heatmap Overlay -->
+          <div class="heatmap-overlay" id="heatmap-overlay" style="display:none;">
+            <div class="heatmap-zone heatmap-high" style="width:120px; height:120px; top:25%; left:18%;"></div>
+            <div class="heatmap-zone heatmap-medium" style="width:100px; height:100px; top:35%; left:62%;"></div>
+            <div class="heatmap-zone heatmap-low" style="width:80px; height:80px; top:68%; left:75%;"></div>
+          </div>
+
+          <!-- Map Pins -->
+          <div class="map-pin" style="top:28%; left:22%;">
+            <div class="pin-dot pin-neglect" style="background:#99460a;">
+              <span class="material-symbols-outlined fill-icon" style="color:white; font-size:14px;">error</span>
+            </div>
+            <div class="pin-tooltip">
+              <div style="font-weight:700; color:#99460a; margin-bottom:4px;">Ward 12 Ã¢â‚¬â€ HIGH NEGLECT</div>
+              <div style="color:#727973; line-height:1.5;">7 pending medical requests Ã‚Â· Unmet 48h</div>
+              <button onclick="openVolCard()" style="margin-top:6px; width:100%; padding:4px; background:#173124; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">ASSIGN VOLUNTEER</button>
+            </div>
+          </div>
+          <div class="map-pin" style="top:55%; left:42%;">
+            <div class="pin-dot" style="background:#173124;">
+              <span class="material-symbols-outlined fill-icon" style="color:white; font-size:14px;">volunteer_activism</span>
+            </div>
+            <div class="pin-tooltip">
+              <div style="font-weight:700; color:#173124; margin-bottom:4px;">Rahul Sawant</div>
+              <div style="color:#727973;">Active Ã‚Â· 1.2km from Ward 12 Ã‚Â· Medical</div>
+            </div>
+          </div>
+          <div class="map-pin" style="top:38%; left:65%;">
+            <div class="pin-dot pin-neglect" style="background:#99460a;">
+              <span class="material-symbols-outlined fill-icon" style="color:white; font-size:14px;">warning</span>
+            </div>
+            <div class="pin-tooltip">
+              <div style="font-weight:700; color:#99460a; margin-bottom:4px;">Ward 8 Ã¢â‚¬â€ MEDIUM</div>
+              <div style="color:#727973; line-height:1.5;">3 water access reports Ã‚Â· 24h unresolved</div>
+              <button style="margin-top:6px; width:100%; padding:4px; background:#99460a; color:white; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">REVIEW</button>
+            </div>
+          </div>
+          <div class="map-pin" style="top:72%; left:78%;">
+            <div class="pin-dot" style="background:#2d4739;">
+              <span class="material-symbols-outlined fill-icon" style="color:white; font-size:14px;">check_circle</span>
+            </div>
+            <div class="pin-tooltip">
+              <div style="font-weight:700; color:#173124; margin-bottom:4px;">Ward 15 Ã¢â‚¬â€ Resolved</div>
+              <div style="color:#727973;">Food kit deployed today Ã‚Â· Need Ã¢â€ â€™ LOW</div>
+            </div>
+          </div>
+
+          <!-- Map Controls (overlay on Leaflet) -->
+          <div style="position:absolute; top:60px; left:16px; display:flex; flex-direction:column; gap:8px; z-index:10;">
+            <div style="background:rgba(255,255,255,0.92); backdrop-filter:blur(8px); border-radius:12px; padding:14px; width:200px; border:1px solid #e4e2df; box-shadow:0 2px 12px rgba(23,49,36,0.08);">
+              <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#173124; margin-bottom:10px;">Map Layers</div>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <label style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+                  <span style="font-size:13px; color:#424844;">Neglected Zones</span>
+                  <div class="toggle on" onclick="this.classList.toggle('on'); this.classList.toggle('off');" id="toggle-neglect">
+                    <div class="toggle-knob"></div>
+                  </div>
+                </label>
+                <label style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+                  <span style="font-size:13px; color:#424844;">Active Volunteers</span>
+                  <div class="toggle on" onclick="this.classList.toggle('on'); this.classList.toggle('off');">
+                    <div class="toggle-knob"></div>
+                  </div>
+                </label>
+                <label style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+                  <span style="font-size:13px; color:#424844;">Need Heatmap</span>
+                  <div class="toggle off" onclick="toggleHeatmap(this)">
+                    <div class="toggle-knob"></div>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div style="background:rgba(255,255,255,0.92); backdrop-filter:blur(8px); border-radius:12px; padding:14px; width:200px; border:1px solid #e4e2df;">
+              <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                <div style="width:10px; height:10px; border-radius:50%; background:#99460a;"></div>
+                <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#99460a;">SDG 10 Alert</span>
+              </div>
+              <div style="font-size:12px; color:#424844; line-height:1.5;">2 zones with 3+ unmet requests flagged by Equity Shield</div>
+            </div>
+          </div>
+
+          <!-- Zoom -->
+          <div style="position:absolute; bottom:24px; right:24px; display:flex; flex-direction:column; gap:6px; z-index:10;">
+            <button style="width:36px; height:36px; background:white; border:1px solid #e4e2df; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,0.1);">
+              <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+            </button>
+            <button style="width:36px; height:36px; background:white; border:1px solid #e4e2df; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,0.1);">
+              <span class="material-symbols-outlined" style="font-size:18px;">remove</span>
+            </button>
+            <button style="width:36px; height:36px; background:white; border:1px solid #e4e2df; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,0.1);">
+              <span class="material-symbols-outlined" style="font-size:18px;">my_location</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Sidebar: Volunteer Matching -->
+        <aside style="width:300px; flex-shrink:0; border-left:1px solid #e4e2df; background:#f5f3f0; padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:16px;" class="hide-mobile" id="compass-sidebar">
+          <div>
+            <div style="font-family:'Newsreader',serif; font-size:20px; font-weight:500; color:#173124;">Volunteer Matching</div>
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#99460a; margin-top:4px;">Priority: Neglected Zones</div>
+          </div>
+          
+          <!-- Vol Card 1 -->
+          <div class="card" style="padding:16px;" id="vol-card-1">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+              <div style="width:40px; height:40px; border-radius:50%; background:#2d4739; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; color:white; flex-shrink:0;">RS</div>
+              <div style="flex:1;">
+                <div style="font-size:14px; font-weight:700; color:#173124;">Rahul Sawant</div>
+                <div style="font-size:11px; color:#727973;">Medical Aid Ã‚Â· Panjim Ã‚Â· 1.2km</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:'Newsreader',serif; font-size:22px; font-weight:700; color:#173124; line-height:1;">94<span style="font-size:11px;">%</span></div>
+                <div style="font-size:9px; font-weight:700; text-transform:uppercase; color:#727973;">Match</div>
+              </div>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px;">
+              <span class="tag tag-green">Medical</span>
+              <span class="tag tag-neutral">Hindi / Konkani</span>
+              <span class="tag tag-neutral">2-Wheeler</span>
+            </div>
+            <button class="btn-primary" style="width:100%;" onclick="deployVol('Rahul Sawant', 'Ward 12')">Deploy to Ward 12</button>
+          </div>
+          
+          <!-- Vol Card 2 -->
+          <div class="card" style="padding:16px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+              <div style="width:40px; height:40px; border-radius:50%; background:#ccead6; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; color:#173124; flex-shrink:0;">PD</div>
+              <div style="flex:1;">
+                <div style="font-size:14px; font-weight:700; color:#173124;">Priya Desai</div>
+                <div style="font-size:11px; color:#727973;">Nutrition Specialist Ã‚Â· Margao Ã‚Â· 3.4km</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:'Newsreader',serif; font-size:22px; font-weight:700; color:#173124; line-height:1;">88<span style="font-size:11px;">%</span></div>
+                <div style="font-size:9px; font-weight:700; text-transform:uppercase; color:#727973;">Match</div>
+              </div>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px;">
+              <span class="tag tag-orange">Nutrition</span>
+              <span class="tag tag-neutral">Marathi</span>
+            </div>
+            <button class="btn-primary" style="width:100%; background:#2d4739;" onclick="deployVol('Priya Desai', 'Ward 8')">Deploy to Ward 8</button>
+          </div>
+          
+          <!-- Vol Card 3 -->
+          <div class="card" style="padding:16px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+              <div style="width:40px; height:40px; border-radius:50%; background:#ffdbca; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; color:#99460a; flex-shrink:0;">AN</div>
+              <div style="flex:1;">
+                <div style="font-size:14px; font-weight:700; color:#173124;">Anita Naik</div>
+                <div style="font-size:11px; color:#727973;">Sanitation Ã‚Â· Verna Ã‚Â· 5.1km</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:'Newsreader',serif; font-size:22px; font-weight:700; color:#173124; line-height:1;">81<span style="font-size:11px;">%</span></div>
+                <div style="font-size:9px; font-weight:700; text-transform:uppercase; color:#727973;">Match</div>
+              </div>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px;">
+              <span class="tag tag-neutral">Sanitation</span>
+              <span class="tag tag-neutral">Konkani</span>
+            </div>
+            <button class="btn-primary" style="width:100%; background:#2d4739;" onclick="deployVol('Anita Naik', 'Ward 12')">Deploy to Ward 12</button>
+          </div>
+
+          <!-- Ground Capacity -->
+          <div style="margin-top:auto; padding-top:16px; border-top:1px solid #e4e2df;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+              <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#727973;">Ground Capacity</span>
+              <span style="font-size:13px; font-weight:700; color:#173124;">76%</span>
+            </div>
+            <div style="height:6px; background:#e4e2df; border-radius:4px; overflow:hidden;">
+              <div style="width:76%; height:100%; background:#2d4739; border-radius:4px;"></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- ==================== IMPACT HEARTH ==================== -->
+    <div class="screen" id="screen-impact">
+      <div class="screen-inner" style="padding:28px; display:flex; flex-direction:column; gap:24px; max-width:1280px; width:100%; margin:0 auto;">
+        
+        <!-- Hero: 72% -->
+        <div style="background:#2d4739; border-radius:20px; padding:40px; display:flex; align-items:center; justify-content:space-between; gap:32px; flex-wrap:wrap; position:relative; overflow:hidden;">
+          <div style="position:absolute; inset:0; background:radial-gradient(ellipse at 80% 50%, rgba(153,70,10,0.15) 0%, transparent 60%); pointer-events:none;"></div>
+          <div style="flex:1; min-width:280px; position:relative;">
+            <div style="display:inline-flex; align-items:center; gap:8px; padding:5px 14px; background:rgba(255,255,255,0.12); border-radius:999px; border:1px solid rgba(255,255,255,0.2); font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:rgba(255,255,255,0.8); margin-bottom:20px;">
+              <span class="material-symbols-outlined fill-icon" style="font-size:14px; color:#b0cdbb;">verified</span>
+              Impact Verification v4.2
+            </div>
+            <div style="font-family:'Newsreader',serif; font-size:44px; font-weight:600; color:white; line-height:1.1; margin-bottom:12px;">72% Verified Impact</div>
+            <div style="font-size:15px; color:rgba(255,255,255,0.75); line-height:1.6; max-width:480px; margin-bottom:24px;">34 of 47 interventions measurably reduced field need signals. Causal attribution confirmed via GroundTruth protocol for Q3 deployment cycles.</div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+              <button class="btn-primary" style="background:#99460a;">Download Impact Audit</button>
+              <button class="btn-outline" style="border-color:rgba(255,255,255,0.3); color:white;">Methodology</button>
+            </div>
+          </div>
+          <!-- Ring -->
+          <div style="flex-shrink:0; position:relative;">
+            <svg width="160" height="160" viewBox="0 0 160 160" class="impact-ring-svg">
+              <circle class="track" cx="80" cy="80" r="68" stroke-width="10"/>
+              <circle class="progress" cx="80" cy="80" r="68" stroke-width="10" stroke-dasharray="427.26" stroke-dashoffset="119.63" transform="rotate(-90 80 80)"/>
+            </svg>
+            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+              <span style="font-family:'Newsreader',serif; font-size:36px; font-weight:600; color:white; line-height:1;">72%</span>
+              <span style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:rgba(255,255,255,0.6);">Verified</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Causal Delta Charts + Stats -->
+        <div style="display:grid; grid-template-columns:1fr 320px; gap:20px; align-items:start;">
+          <!-- Chart -->
+          <div class="card" style="padding:28px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; flex-wrap:wrap; gap:12px;">
+              <div>
+                <div style="font-family:'Newsreader',serif; font-size:22px; font-weight:500; color:#173124;">Causal Impact Delta</div>
+                <div style="font-size:13px; color:#727973; margin-top:2px;">Sector-wise before/after need signal reduction Ã‚Â· Q1Ã¢â‚¬â€œQ3</div>
+              </div>
+              <div style="display:flex; gap:14px; align-items:center;">
+                <div style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#424844;">
+                  <div style="width:12px; height:12px; border-radius:3px; background:#ba1a1a;"></div> Before (Need Level)
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#424844;">
+                  <div style="width:12px; height:12px; border-radius:3px; background:#b0cdbb;"></div> After (Post-Intervention)
+                </div>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:20px; align-items:flex-end; height:180px; padding-bottom:8px;">
+              <!-- Water -->
+              <div style="display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end;">
+                <div style="display:flex; align-items:flex-end; gap:4px; height:160px;">
+                  <div class="bar-before" style="width:28px; height:85%;"></div>
+                  <div class="bar-after" style="width:28px; height:22%;"></div>
+                </div>
+                <div style="font-size:12px; font-weight:600; text-align:center; color:#424844;">Water Security</div>
+                <div style="font-size:11px; font-weight:700; color:#ba1a1a;">-63% ÃŽâ€</div>
+              </div>
+              <!-- Food -->
+              <div style="display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end;">
+                <div style="display:flex; align-items:flex-end; gap:4px; height:160px;">
+                  <div class="bar-before" style="width:28px; height:72%;"></div>
+                  <div class="bar-after" style="width:28px; height:36%;"></div>
+                </div>
+                <div style="font-size:12px; font-weight:600; text-align:center; color:#424844;">Nutrition</div>
+                <div style="font-size:11px; font-weight:700; color:#ba1a1a;">-36% ÃŽâ€</div>
+              </div>
+              <!-- Health -->
+              <div style="display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end;">
+                <div style="display:flex; align-items:flex-end; gap:4px; height:160px;">
+                  <div class="bar-before" style="width:28px; height:58%;"></div>
+                  <div class="bar-after" style="width:28px; height:14%;"></div>
+                </div>
+                <div style="font-size:12px; font-weight:600; text-align:center; color:#424844;">Maternal Health</div>
+                <div style="font-size:11px; font-weight:700; color:#ba1a1a;">-44% ÃŽâ€</div>
+              </div>
+              <!-- Literacy -->
+              <div style="display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end;">
+                <div style="display:flex; align-items:flex-end; gap:4px; height:160px;">
+                  <div class="bar-before" style="width:28px; height:42%;"></div>
+                  <div class="bar-after" style="width:28px; height:12%;"></div>
+                </div>
+                <div style="font-size:12px; font-weight:600; text-align:center; color:#424844;">Literacy Access</div>
+                <div style="font-size:11px; font-weight:700; color:#ba1a1a;">-28% ÃŽâ€</div>
+              </div>
+            </div>
+            <!-- Outcome Feedback Demo -->
+            <div style="margin-top:24px; padding:16px; background:#f5f3f0; border-radius:12px; border:1px solid #e4e2df;">
+              <div style="font-size:13px; font-weight:700; color:#173124; margin-bottom:12px;">Live Outcome Feedback Loop</div>
+              <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:120px; padding:12px; background:#ffdad6; border-radius:10px; text-align:center;">
+                  <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#ba1a1a; margin-bottom:2px;">Before</div>
+                  <div style="font-family:'Newsreader',serif; font-size:20px; font-weight:600; color:#ba1a1a;">HIGH</div>
+                  <div style="font-size:11px; color:#ba1a1a;">Need Level</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; color:#2d4739; font-weight:700; font-size:13px;">
+                  <span class="material-symbols-outlined fill-icon" style="font-size:24px; color:#2d4739;">arrow_forward</span>
+                  <span style="font-size:11px; text-align:center; max-width:60px; line-height:1.3;">Volunteer Deployed</span>
+                </div>
+                <div style="flex:1; min-width:120px; padding:12px; background:#ccead6; border-radius:10px; text-align:center;">
+                  <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#173124; margin-bottom:2px;">After</div>
+                  <div style="font-family:'Newsreader',serif; font-size:20px; font-weight:600; color:#173124;">LOW</div>
+                  <div style="font-size:11px; color:#173124;">Need Level</div>
+                </div>
+                <button class="btn-primary" style="flex-shrink:0;" onclick="simulateOutcome()">Simulate Demo</button>
+              <button id="impact-gemini-btn" class="btn-primary" style="flex-shrink:0;background:#99460a;" onclick="runImpactAnalysis()"><span class="material-symbols-outlined fill-icon" style="font-size:14px;vertical-align:middle;">auto_awesome</span> Gemini Analysis</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gemini Impact Box -->
+          <div id="impact-gemini-box" style="display:none;background:white;border-radius:14px;border:1px solid #e4e2df;padding:20px;margin-top:8px;"></div>
+
+          <!-- Right Stats -->
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div class="card" style="padding:20px; background:#fff8f5; border-color:#ffb68e;">
+              <div style="font-family:'Newsreader',serif; font-size:18px; font-weight:500; color:#99460a; margin-bottom:8px;">Priority Sentinel</div>
+              <div style="font-size:13px; color:#6e2f00; line-height:1.6;">3 new signal clusters in Northern zone requiring intervention validation.</div>
+              <button style="display:flex; align-items:center; gap:6px; background:none; border:none; color:#99460a; font-weight:700; font-size:13px; cursor:pointer; margin-top:10px; padding:0;" onclick="showScreen('compass')">
+                Review signals <span class="material-symbols-outlined" style="font-size:16px;">arrow_forward</span>
+              </button>
+            </div>
+            <div class="card" style="padding:20px;">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                <div style="width:40px; height:40px; background:#f5f3f0; border-radius:10px; display:flex; align-items:center; justify-content:center;">
+                  <span class="material-symbols-outlined fill-icon" style="color:#173124; font-size:20px;">verified</span>
+                </div>
+                <div>
+                  <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#727973;">Ground Truthing</div>
+                  <div style="font-size:15px; font-weight:700; color:#173124;">Active Verifiers</div>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; justify-content:space-between; font-size:14px;">
+                  <span style="color:#424844;">Echo Transmissions</span>
+                  <span style="font-weight:700; color:#1b1c1a;">12,482</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:14px;">
+                  <span style="color:#424844;">Cross-verified</span>
+                  <span style="font-weight:700; color:#173124;">9,201</span>
+                </div>
+                <div style="height:6px; background:#e4e2df; border-radius:4px; overflow:hidden;">
+                  <div style="width:74%; height:100%; background:#2d4739; border-radius:4px;"></div>
+                </div>
+                <div style="font-size:12px; color:#727973; text-align:right;">74% verification rate</div>
+              </div>
+            </div>
+            <div class="card" style="padding:20px;">
+              <div style="font-family:'Newsreader',serif; font-size:18px; font-weight:500; color:#173124; margin-bottom:8px;">Network Resilience</div>
+              <div style="font-size:13px; color:#424844; line-height:1.6;">Coordination efficiency between 12 partner NGOs increased 18% following Impact Hearth deployment.</div>
+              <div style="margin-top:12px; display:flex; justify-content:space-between; font-size:13px;">
+                <span style="color:#727973;">Partner NGOs</span>
+                <span style="font-weight:700; color:#173124;">12 active</span>
+              </div>
+              <div style="margin-top:8px; height:6px; background:#e4e2df; border-radius:4px; overflow:hidden;">
+                <div style="width:82%; height:100%; background:#2d4739; border-radius:4px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== EQUITY SHIELD ==================== -->
+    <div class="screen" id="screen-equity">
+      <div class="screen-inner" style="padding:28px; display:flex; flex-direction:column; gap:24px; max-width:1280px; width:100%; margin:0 auto;">
+        
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+              <span class="material-symbols-outlined fill-icon" style="font-size:28px; color:#173124;">shield</span>
+              <div style="font-family:'Newsreader',serif; font-size:32px; font-weight:600; color:#173124;">Equity Shield</div>
+            </div>
+            <div style="color:#727973; font-size:14px;">SDG 10 Ã¢â‚¬â€ Reduced Inequalities Ã‚Â· Bias Detection & Fairness Engine</div>
+          </div>
+          <div style="padding:12px 20px; background:#ffdad6; border-radius:12px; border:1px solid #ffb4ab;">
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#ba1a1a; margin-bottom:4px;">Active Alert</div>
+            <div style="font-size:14px; font-weight:600; color:#ba1a1a;">2 Equity Violations Detected</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+          <!-- Geographic Bias -->
+          <div class="card" style="padding:24px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+              <span class="material-symbols-outlined fill-icon" style="color:#99460a; font-size:22px;">location_on</span>
+              <div style="font-family:'Newsreader',serif; font-size:20px; font-weight:500; color:#173124;">Geographic Equity</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                  <span style="font-size:13px; font-weight:600; color:#1b1c1a;">Urban Wards (5, 8)</span>
+                  <span style="font-size:13px; font-weight:700; color:#173124;">87 assignments</span>
+                </div>
+                <div class="shield-bar" style="background:#173124; width:87%;"></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                  <span style="font-size:13px; font-weight:600; color:#1b1c1a;">Peri-urban (Ward 12)</span>
+                  <span style="font-size:13px; font-weight:700; color:#99460a;">42 assignments</span>
+                </div>
+                <div class="shield-bar" style="background:#99460a; width:42%;"></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                  <span style="font-size:13px; font-weight:600; color:#1b1c1a;">Rural Zones</span>
+                  <span style="font-size:13px; font-weight:700; color:#ba1a1a;">21 assignments</span>
+                </div>
+                <div class="shield-bar" style="background:#ba1a1a; width:21%;"></div>
+              </div>
+            </div>
+            <div style="margin-top:16px; padding:12px; background:#ffdad6; border-radius:10px; font-size:13px; color:#ba1a1a; font-weight:600;">
+              Ã¢Å¡Â  Rural wards receiving 40% fewer assignments than urban. Auto-adjustment recommended.
+            </div>
+            <button class="btn-secondary" style="width:100%; margin-top:14px;" onclick="autoBalance()">Auto-Balance Allocation</button>
+            <button id="equity-gemini-btn" class="btn-primary" style="width:100%;margin-top:8px;" onclick="runEquityAudit()"><span class="material-symbols-outlined fill-icon" style="font-size:14px;vertical-align:middle;">auto_awesome</span> Run Equity Audit</button>
+            <div id="equity-gemini-box" style="display:none;background:#f5f3f0;border-radius:12px;padding:16px;margin-top:10px;"></div>
+          </div>
+
+          <!-- Gender Bias -->
+          <div class="card" style="padding:24px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+              <span class="material-symbols-outlined fill-icon" style="color:#2d4739; font-size:22px;">person</span>
+              <div style="font-family:'Newsreader',serif; font-size:20px; font-weight:500; color:#173124;">Gender Equity Audit</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px;" id="gender-bars">
+              <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                  <span style="font-size:13px; font-weight:600; color:#1b1c1a;">Male Volunteers</span>
+                  <span style="font-size:13px; font-weight:700;">68%</span>
+                </div>
+                <div class="shield-bar" style="background:#2d4739; width:68%;"></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                  <span style="font-size:13px; font-weight:600; color:#1b1c1a;">Female Volunteers</span>
+                  <span style="font-size:13px; font-weight:700;">28%</span>
+                </div>
+                <div class="shield-bar" style="background:#99460a; width:28%;"></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                  <span style="font-size:13px; font-weight:600; color:#1b1c1a;">Other / Unspecified</span>
+                  <span style="font-size:13px; font-weight:700;">4%</span>
+                </div>
+                <div class="shield-bar" style="background:#b0cdbb; width:4%;"></div>
+              </div>
+            </div>
+            <div style="margin-top:16px; padding:12px; background:#ccead6; border-radius:10px; font-size:13px; color:#173124; font-weight:600;">
+              Ã¢Å“â€œ ASHA women leaders receive priority matching for maternal health tasks. SDG 5 compliant.
+            </div>
+            <button class="btn-outline" style="width:100%; margin-top:14px;">View Recommendations</button>
+          </div>
+        </div>
+
+        <!-- SDG Traceability -->
+        <div class="card" style="padding:24px;">
+          <div style="font-family:'Newsreader',serif; font-size:22px; font-weight:500; color:#173124; margin-bottom:20px;">SDG Compliance Dashboard</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
+            <div style="padding:16px; border-radius:12px; background:#f0edea; border:1px solid #e4e2df; text-align:center;">
+              <div style="font-size:28px; margin-bottom:4px;">Ã°Å¸Å½Â¯</div>
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#2d4739;">SDG 1</div>
+              <div style="font-size:13px; font-weight:600; color:#173124; margin-top:2px;">No Poverty</div>
+              <div style="font-size:12px; color:#727973; margin-top:4px;">Food aid coverage: 82%</div>
+            </div>
+            <div style="padding:16px; border-radius:12px; background:#f0edea; border:1px solid #e4e2df; text-align:center;">
+              <div style="font-size:28px; margin-bottom:4px;">Ã°Å¸Å’Â±</div>
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#99460a;">SDG 2</div>
+              <div style="font-size:13px; font-weight:600; color:#173124; margin-top:2px;">Zero Hunger</div>
+              <div style="font-size:12px; color:#727973; margin-top:4px;">Malnutrition delta: -36%</div>
+            </div>
+            <div style="padding:16px; border-radius:12px; background:#f0edea; border:1px solid #e4e2df; text-align:center;">
+              <div style="font-size:28px; margin-bottom:4px;">Ã°Å¸â€™Å¡</div>
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#2d4739;">SDG 3</div>
+              <div style="font-size:13px; font-weight:600; color:#173124; margin-top:2px;">Good Health</div>
+              <div style="font-size:12px; color:#727973; margin-top:4px;">Maternal health delta: -44%</div>
+            </div>
+            <div style="padding:16px; border-radius:12px; background:#ccead6; border:2px solid #b0cdbb; text-align:center;">
+              <div style="font-size:28px; margin-bottom:4px;">Ã¢Å¡â€“Ã¯Â¸Â</div>
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#ba1a1a;">SDG 10 Ã¢Å¡Â </div>
+              <div style="font-size:13px; font-weight:600; color:#173124; margin-top:2px;">Reduced Inequalities</div>
+              <div style="font-size:12px; color:#99460a; margin-top:4px; font-weight:600;">Rural gap: active alert</div>
+            </div>
+            <div style="padding:16px; border-radius:12px; background:#f0edea; border:1px solid #e4e2df; text-align:center;">
+              <div style="font-size:28px; margin-bottom:4px;">Ã°Å¸Â¤Â</div>
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#2d4739;">SDG 17</div>
+              <div style="font-size:13px; font-weight:600; color:#173124; margin-top:2px;">Partnerships</div>
+              <div style="font-size:12px; color:#727973; margin-top:4px;">12 NGOs connected</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== FIELD REPORTS ==================== -->
+    <div class="screen" id="screen-reports">
+      <div class="screen-inner" style="padding:28px; display:flex; flex-direction:column; gap:24px; max-width:1280px; width:100%; margin:0 auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div>
+            <div style="font-family:'Newsreader',serif; font-size:28px; font-weight:600; color:#173124;">Field Reports</div>
+            <div style="color:#727973; font-size:14px; margin-top:4px;">All need signal submissions Ã‚Â· Sorted by urgency</div>
+          </div>
+          <button class="btn-primary" onclick="showScreen('echo')">
+            <span style="display:flex; align-items:center; gap:8px;">
+              <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+              New Voice Report
+            </span>
+          </button>
+        </div>
+
+        <!-- Filters -->
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button id="filter-btn-all" class="btn-primary" style="font-size:12px; padding:7px 16px;" onclick="renderReports('all')">All</button>
+          <button id="filter-btn-urgent" class="btn-outline" style="font-size:12px; padding:7px 16px;" onclick="renderReports('urgent')">Urgent</button>
+          <button id="filter-btn-neglected" class="btn-outline" style="font-size:12px; padding:7px 16px;" onclick="renderReports('neglected')">Neglected</button>
+          <button id="filter-btn-resolved" class="btn-outline" style="font-size:12px; padding:7px 16px;" onclick="renderReports('resolved')">Resolved</button>
+        </div>
+
+        <!-- Table -->
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button class="btn-primary" style="font-size:12px;padding:7px 14px;" onclick="openAddReportModal()"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">add</span> Add Report</button>
+          <button class="btn-outline" style="font-size:12px;padding:7px 14px;" onclick="downloadCSV()"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">download</span> Export CSV</button>
+          <button class="btn-outline" style="font-size:12px;padding:7px 14px;" onclick="downloadJSON()"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">data_object</span> Export JSON</button>
+        </div>
+        <!-- Add Report Modal -->
+        <div id="add-report-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;align-items:center;justify-content:center;">
+          <div style="background:white;border-radius:16px;padding:28px;width:480px;max-width:95vw;box-shadow:0 8px 40px rgba(23,49,36,0.2);">
+            <div style="font-family:'Newsreader',serif;font-size:22px;font-weight:600;color:#173124;margin-bottom:20px;">Add Field Report</div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <input id="nr-title" placeholder="Report title (e.g. Food shortage Ã¢â‚¬â€ Ward 5)" style="border:1.5px solid #e4e2df;border-radius:8px;padding:10px 14px;font-family:'Manrope',sans-serif;font-size:13px;outline:none;" />
+              <div style="display:flex;gap:8px;">
+                <select id="nr-cat" style="flex:1;border:1.5px solid #e4e2df;border-radius:8px;padding:10px;font-family:'Manrope',sans-serif;font-size:13px;">
+                  <option>Food</option><option>Medical</option><option>Water</option><option>Sanitation</option><option>Nutrition</option><option>Rescue</option><option>Other</option>
+                </select>
+                <select id="nr-status" style="flex:1;border:1.5px solid #e4e2df;border-radius:8px;padding:10px;font-family:'Manrope',sans-serif;font-size:13px;">
+                  <option>Urgent</option><option>In Progress</option><option>Resolved</option><option>Neglected</option>
+                </select>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <input id="nr-ward" placeholder="Ward / Location" style="flex:1;border:1.5px solid #e4e2df;border-radius:8px;padding:10px 14px;font-family:'Manrope',sans-serif;font-size:13px;outline:none;" />
+                <input id="nr-vol" placeholder="Volunteer (or Unassigned)" style="flex:1;border:1.5px solid #e4e2df;border-radius:8px;padding:10px 14px;font-family:'Manrope',sans-serif;font-size:13px;outline:none;" />
+              </div>
+              <div style="display:flex;gap:8px;margin-top:4px;">
+                <button class="btn-primary" style="flex:1;" onclick="submitNewReport()">Add Report</button>
+                <button class="btn-outline" onclick="closeAddReportModal()">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="overflow:hidden; padding:0;">
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+              <thead>
+                <tr style="background:#f5f3f0; border-bottom:1px solid #e4e2df;">
+                  <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#727973;">Report</th>
+                  <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#727973;">Category</th>
+                  <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#727973;">Ward</th>
+                  <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#727973;">Status</th>
+                  <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#727973;">Volunteer</th>
+                  <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#727973;">Impact</th>
+                  <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#727973;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="reports-table">
+                <tr style="border-bottom:1px solid #f0edea;">
+                  <td style="padding:14px 16px;"><div style="font-weight:600; color:#1b1c1a;">Ã Â¤â€“Ã Â¤Â¾Ã Â¤Â¦Ã Â¥ÂÃ Â¤Â¯Ã Â¤Â¾Ã Â¤Â¨Ã Â¥ÂÃ Â¤Â¨ Ã Â¤Â¸Ã Â¤â€šÃ Â¤â€¢Ã Â¤Å¸ Ã¢â‚¬â€ 45 families</div><div style="font-size:11px; color:#727973; margin-top:2px;">2 min ago Ã‚Â· Voice Ã‚Â· Hindi</div></td>
+                  <td style="padding:14px 16px;"><span class="tag tag-orange">Food</span></td>
+                  <td style="padding:14px 16px; font-weight:600;">Ward 7</td>
+                  <td style="padding:14px 16px;"><span class="tag" style="background:#ffdad6; color:#ba1a1a;">Urgent</span></td>
+                  <td style="padding:14px 16px; color:#727973;">Unassigned</td>
+                  <td style="padding:14px 16px;"><span style="color:#ba1a1a; font-weight:700;">HIGH Ã¢â€ â€™ ?</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid #f0edea; background:#fafaf8;">
+                  <td style="padding:14px 16px;"><div style="font-weight:600; color:#1b1c1a;">Medical Kit Delivery Confirmed</div><div style="font-size:11px; color:#727973; margin-top:2px;">18 min ago Ã‚Â· Auto-report Ã‚Â· EN</div></td>
+                  <td style="padding:14px 16px;"><span class="tag tag-green">Medical</span></td>
+                  <td style="padding:14px 16px; font-weight:600;">Ward 12</td>
+                  <td style="padding:14px 16px;"><span class="tag tag-green">Resolved</span></td>
+                  <td style="padding:14px 16px; font-weight:600; color:#173124;">Rahul Sawant</td>
+                  <td style="padding:14px 16px;"><span style="color:#173124; font-weight:700;">HIGH Ã¢â€ â€™ LOW Ã¢Å“â€œ</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid #f0edea;">
+                  <td style="padding:14px 16px;"><div style="font-weight:600; color:#1b1c1a;">Ã Â¤ÂªÃ Â¤Â¾Ã Â¤Â£Ã Â¥â‚¬ Ã Â¤Å¸Ã Â¤â€šÃ Â¤Å¡Ã Â¤Â¾Ã Â¤Ë† Ã¢â‚¬â€ Industrial Zone</div><div style="font-size:11px; color:#727973; margin-top:2px;">1h ago Ã‚Â· Voice Ã‚Â· Marathi</div></td>
+                  <td style="padding:14px 16px;"><span class="tag tag-neutral">Water</span></td>
+                  <td style="padding:14px 16px; font-weight:600;">Verna</td>
+                  <td style="padding:14px 16px;"><span class="tag tag-orange">Neglected</span></td>
+                  <td style="padding:14px 16px; color:#727973;">36h unassigned</td>
+                  <td style="padding:14px 16px;"><span style="color:#99460a; font-weight:700;">HIGH Ã¢â€ â€™ HIGH</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid #f0edea; background:#fafaf8;">
+                  <td style="padding:14px 16px;"><div style="font-weight:600; color:#1b1c1a;">Sanitation Drive Ã¢â‚¬â€ Ward 3</div><div style="font-size:11px; color:#727973; margin-top:2px;">3h ago Ã‚Â· Field Report Ã‚Â· EN</div></td>
+                  <td style="padding:14px 16px;"><span class="tag tag-neutral">Sanitation</span></td>
+                  <td style="padding:14px 16px; font-weight:600;">Ward 3</td>
+                  <td style="padding:14px 16px;"><span class="tag tag-green">In Progress</span></td>
+                  <td style="padding:14px 16px; font-weight:600; color:#173124;">Anita Naik</td>
+                  <td style="padding:14px 16px;"><span style="color:#2d4739; font-weight:700;">MED Ã¢â€ â€™ LOW Ã¢â€ â€œ</span></td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 16px;"><div style="font-weight:600; color:#1b1c1a;">Nutrition Survey Ã¢â‚¬â€ Rural Cluster</div><div style="font-size:11px; color:#727973; margin-top:2px;">Yesterday Ã‚Â· Paper Ã¢â€ â€™ Digital</div></td>
+                  <td style="padding:14px 16px;"><span class="tag tag-orange">Nutrition</span></td>
+                  <td style="padding:14px 16px; font-weight:600;">Rural NE</td>
+                  <td style="padding:14px 16px;"><span class="tag" style="background:#ffdad6; color:#ba1a1a;">Neglected</span></td>
+                  <td style="padding:14px 16px; color:#727973;">Unassigned</td>
+                  <td style="padding:14px 16px;"><span style="color:#ba1a1a; font-weight:700;">HIGH Ã¢â€ â€™ ?</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end screens-container -->
+</div>
+
+<!-- ============================== MOBILE BOTTOM NAV ============================== -->
+<nav class="mobile-nav" style="justify-content:space-around; padding:10px 0; z-index:100;">
+  <a onclick="showScreen('dashboard')" style="display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; padding:4px 12px;">
+    <span class="material-symbols-outlined" style="font-size:22px; color:#2d4739;">dashboard</span>
+    <span style="font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#2d4739;">Home</span>
+  </a>
+  <a onclick="showScreen('echo')" style="display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; padding:4px 12px;">
+    <span class="material-symbols-outlined" style="font-size:22px; color:#424844;">mic</span>
+    <span style="font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#727973;">Echo</span>
+  </a>
+  <a onclick="showScreen('compass')" style="display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; padding:4px 12px;">
+    <span class="material-symbols-outlined" style="font-size:22px; color:#424844;">explore</span>
+    <span style="font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#727973;">Map</span>
+  </a>
+  <a onclick="showScreen('impact')" style="display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; padding:4px 12px;">
+    <span class="material-symbols-outlined" style="font-size:22px; color:#424844;">monitoring</span>
+    <span style="font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#727973;">Impact</span>
+  </a>
+  <a onclick="showScreen('equity')" style="display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; padding:4px 12px;">
+    <span class="material-symbols-outlined" style="font-size:22px; color:#424844;">shield</span>
+    <span style="font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#727973;">Equity</span>
+  </a>
+</nav>
+
+<!-- ============================== TOAST ============================== -->
+<div id="toast" style="position:fixed; bottom:24px; right:24px; background:#173124; color:white; padding:14px 20px; border-radius:12px; font-size:13px; font-weight:600; transform:translateY(80px); opacity:0; transition:all 0.3s ease; z-index:999; max-width:300px; box-shadow:0 4px 20px rgba(23,49,36,0.3); display:flex; align-items:center; gap:10px;">
+  <span class="material-symbols-outlined fill-icon" style="font-size:18px; color:#b0cdbb;" id="toast-icon">check_circle</span>
+  <span id="toast-text"></span>
+</div>
+
+<script src="aastha-live-1.js"></script>
+<script src="aastha-live-2.js"></script>
+<script>
+// All interactive logic is in aastha-live-1.js and aastha-live-2.js
+
+</script>
+</body>
+</html>
